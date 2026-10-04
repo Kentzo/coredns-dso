@@ -209,7 +209,7 @@ func (h *processDSO) cleanup() {
 	})
 	maps.DeleteFunc(h.listeners, func(_ string, ln *listener) bool {
 		if !slices.Contains(seen, ln) {
-			ln.Close()
+			_ = ln.Close()
 			return true
 		}
 		return false
@@ -468,7 +468,7 @@ func (s *serverStarter) shutdown(reconnectInterval time.Duration) {
 	if s.server == nil {
 		return
 	}
-	s.server.Shutdown(context.Background(), reconnectInterval)
+	_ = s.server.Shutdown(context.Background(), reconnectInterval)
 	s.listenersGroup.Wait()
 	s.server = nil
 }
@@ -506,13 +506,13 @@ func (ln *listener) resume() error {
 		fallthrough
 	default:
 		log.Infof("dso://%v: %v", ln.Addr(), ln.err)
-		ln.Close()
+		_ = ln.Close()
 		return ln.err
 	}
 }
 
 func (ln *listener) pause() {
-	ln.SetDeadline(aLongTimeAgo)
+	_ = ln.SetDeadline(aLongTimeAgo)
 }
 
 func (cs *configSet) add(dnsCfg *dnsserver.Config, dsoCfg *Config) {

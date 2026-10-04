@@ -120,7 +120,7 @@ func (s *Server) Serve(ln net.Listener) error {
 			return err
 		}
 		if !s.trackConn(conn, true) {
-			dsosession.AbortConn(conn)
+			_ = dsosession.AbortConn(conn)
 			return ErrServerClosed
 		}
 	}
@@ -156,7 +156,7 @@ func (s *Server) Shutdown(ctx context.Context, reconnectInterval time.Duration) 
 
 	s.mu.Lock()
 	for l := range s.listeners {
-		l.Close()
+		_ = l.Close()
 	}
 	s.mu.Unlock()
 	s.listenersGroup.Wait()
@@ -177,7 +177,7 @@ func (s *Server) Shutdown(ctx context.Context, reconnectInterval time.Duration) 
 
 	s.mu.Lock()
 	for _, h := range s.conns {
-		h.sesh.Abort()
+		_ = h.sesh.Abort()
 	}
 	s.mu.Unlock()
 	s.connsGroup.Wait()
@@ -191,7 +191,7 @@ func (s *Server) trackListener(ln net.Listener, add bool) bool {
 
 	if add {
 		if s.shutdown.Load() {
-			ln.Close()
+			_ = ln.Close()
 			return false
 		}
 		s.listeners[ln] = struct{}{}
@@ -268,7 +268,7 @@ func (h *connHandler) handle(ctx context.Context) {
 
 	if shutdownErr, ok := errors.AsType[*shutdownError](err); ok {
 		if shutdownErr.reconnectInterval < 0 {
-			h.sesh.Abort()
+			_ = h.sesh.Abort()
 			return
 		}
 		retryDelay := uint32(shutdownErr.reconnectInterval.Milliseconds()) // #nosec G115 -- DSO protocol mandates uint32 for RetryDelay
@@ -291,9 +291,9 @@ func (h *connHandler) handle(ctx context.Context) {
 	case errors.Is(err, net.ErrClosed):
 		fallthrough
 	case errors.Is(err, syscall.EPIPE):
-		h.sesh.Close()
+		_ = h.sesh.Close()
 	default:
-		h.sesh.Abort()
+		_ = h.sesh.Abort()
 	}
 }
 
