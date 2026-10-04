@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,11 +21,23 @@ func setupCorefilef(format string, a ...any) caddy.CaddyfileInput {
 	}
 }
 
+var addDirectiveOnce sync.Once
+
 func setupCoreDNSf(tb testing.TB, format string, a ...any) (*caddy.Instance, error) {
 	tb.Helper()
 
 	caddy.Quiet = true
 	dnsserver.Quiet = true
+
+	addDirectiveOnce.Do(func() {
+		directives := slices.Clone(dnsserver.Directives)
+		i := slices.Index(directives, "tls")
+		directives = slices.Insert(directives, i, "dso")
+		err := dnsserver.SetDirectives(directives)
+		if err != nil {
+			tb.Fatalf("Got %v, want register dso directive", err)
+		}
+	})
 
 	inst, err := caddy.Start(setupCorefilef(format, a...))
 	tb.Cleanup(func() {
