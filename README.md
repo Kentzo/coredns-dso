@@ -8,6 +8,20 @@
 
 *dso* - implements [RFC 8490][rfc8490] DNS Stateful Operations and [RFC 8765][rfc8765] DNS Push Notifications.
 
+## Installation
+
+To include the plugin in another CoreDNS build, add this entry to plugin.cfg after tls:
+
+    dso:github.com/kentzo/coredns-dso
+
+Then build CoreDNS:
+
+    go get github.com/kentzo/coredns-dso@latest
+    go generate
+    go build -o coredns .
+
+See also [Dockerfile ](Dockerfile).
+
 ## Description
 
 The *dso* plugin allows clients to establish DNS Stateful Operations sessions. The service runs alongside
