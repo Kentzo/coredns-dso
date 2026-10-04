@@ -435,7 +435,7 @@ func (h *connHandler) closeNotify(rcode uint8, retryDelay uint32) (err error) {
 	b := dsomessage.NewBuilder(buf[:]).
 		EnableLengthPrefix().
 		SetHeader(dsomessage.MsgHeader{ID: 0, Response: false, Rcode: rcode})
-	b.WriteRetryDelay(&dsomessage.RetryDelay{RetryDelay: retryDelay})
+	_, _ = b.WriteRetryDelay(&dsomessage.RetryDelay{RetryDelay: retryDelay})
 	msg, _ := b.Message()
 	_, err = h.Write(msg)
 	return err
@@ -845,7 +845,7 @@ func (h *dsoMsgHandler) buildKeepAlive(id uint16, buf []byte) (msg []byte) {
 			Response: id != 0, // server either responds to client or writes unidirectional
 			Rcode:    dns.RcodeSuccess,
 		})
-	b.WriteKeepAlive(&h.ka)
+	_, _ = b.WriteKeepAlive(&h.ka)
 	msg, _ = b.Message()
 	return msg
 }
