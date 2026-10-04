@@ -1,3 +1,7 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/kentzo/coredns-dso.svg)](https://pkg.go.dev/github.com/kentzo/coredns-dso)
+[![Coverage Status](https://coveralls.io/repos/github/kentzo/coredns-dso/badge.svg?branch=main)](https://coveralls.io/github/kentzo/coredns-dso?branch=main)
+[![CI](https://github.com/kentzo/coredns-dso/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/kentzo/coredns-dso/actions/workflows/ci.yml?query=branch%3Amain)
+
 # dso
 
 ## Name
