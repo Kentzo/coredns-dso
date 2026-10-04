@@ -1,0 +1,69 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: go.mod
+            go_version_file: go.mod
+            go_version:
+          - name: stable
+            go_version_file:
+            go_version: stable
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.go_version_file }}
+          go-version: ${{ matrix.go_version }}
+      - run: go test -race -coverprofile=coverage.out ./...
+      - if: matrix.go_version_file == 'go.mod'
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage.out
+          format: golang
+
+  lint:
+    name: lint (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: go.mod
+            go_version_file: go.mod
+            go_version:
+            golangci: v2.14
+          - name: stable
+            go_version_file:
+            go_version: stable
+            golangci: latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.go_version_file }}
+          go-version: ${{ matrix.go_version }}
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ matrix.golangci }}
+          args: --tests=false
+      - if: matrix.go_version_file == 'go.mod'
+        run: go mod tidy -diff
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
