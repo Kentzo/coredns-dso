@@ -6,8 +6,8 @@ require (
 	github.com/coredns/caddy v1.1.4
 	github.com/coredns/coredns v1.14.8-0.20260930135946-f44a91377a0b
 	github.com/google/go-cmp v0.7.0
-	github.com/kentzo/dsomessage v0.0.0-20261002041234-db788d63ad6d
-	github.com/kentzo/dsosession v0.0.0-20261002041557-6a3b5f7d3fc6
+	github.com/kentzo/dsomessage v0.1.0
+	github.com/kentzo/dsosession v0.1.0
 	github.com/miekg/dns v1.1.73
 	github.com/prometheus/client_golang v1.24.1
 )

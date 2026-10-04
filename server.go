@@ -120,7 +120,7 @@ func (s *Server) Serve(ln net.Listener) error {
 			return err
 		}
 		if !s.trackConn(conn, true) {
-			conn.Close()
+			dsosession.AbortConn(conn)
 			return ErrServerClosed
 		}
 	}
@@ -245,47 +245,53 @@ func newConnHandler(server *Server, conn net.Conn) (h *connHandler) {
 func (h *connHandler) handle(ctx context.Context) {
 	connCtx, cancelFunc := context.WithCancelCause(ctx)
 
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
 	// Plain DNS is only answered to satisfy RFC 8765 (Push) requirement.
 	_, isTLS := h.sesh.Conn.(*tls.Conn)
 	if cfg := h.config.Push; isTLS && cfg != nil {
 		h.push = dsosession.NewPush(h.config.Push.Classes, h.config.Push.Types)
-		go func() {
+		wg.Go(func() {
 			err := h.push.Serve(connCtx, h, h, h.config.Push.DebounceDelay, h.config.Push.RefreshInterval)
 			cancelFunc(err)
-		}()
+		})
 	}
 
-	go func() {
+	wg.Go(func() {
 		err := h.serve(connCtx)
 		cancelFunc(err)
-	}()
+	})
 
 	<-connCtx.Done()
 	err := context.Cause(connCtx)
 
 	if shutdownErr, ok := errors.AsType[*shutdownError](err); ok {
-		if shutdownErr.reconnectInterval >= 0 {
-			retryDelay := uint32(shutdownErr.reconnectInterval.Milliseconds()) // #nosec G115 -- DSO protocol mandates uint32 for RetryDelay
-			err = h.closeNotify(dns.RcodeSuccess, retryDelay)
-		} else {
-			h.sesh.Close()
+		if shutdownErr.reconnectInterval < 0 {
+			h.sesh.Abort()
+			return
 		}
+		retryDelay := uint32(shutdownErr.reconnectInterval.Milliseconds()) // #nosec G115 -- DSO protocol mandates uint32 for RetryDelay
+		err = h.closeNotify(dns.RcodeSuccess, retryDelay)
 	}
 
 	switch {
 	case err == nil:
 		fallthrough
 	case errors.Is(err, dsosession.ErrStateClosed):
-		io.Copy(io.Discard, h.sesh.Conn)
-		h.sesh.Close()
+		fallthrough
+	case errors.Is(err, io.EOF): // TLS EOF != socket EOF
+		wg.Wait()
+		err = h.sesh.Drain()
+	}
 
+	switch {
+	case err == nil:
+		fallthrough
 	case errors.Is(err, net.ErrClosed):
 		fallthrough
 	case errors.Is(err, syscall.EPIPE):
-		fallthrough
-	case errors.Is(err, io.EOF):
 		h.sesh.Close()
-
 	default:
 		h.sesh.Abort()
 	}
